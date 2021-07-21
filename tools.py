@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from scipy.fftpack import dst, idst
+from numpy import linalg as LA
 
 def jacobian(nx,ny,dx,dy,q,s):
     # compute jacobian using arakawa scheme
@@ -27,6 +28,7 @@ def jacobian(nx,ny,dx,dy,q,s):
 def laplacian(nx,ny,dx,dy,w):
     aa = 1.0/(dx*dx)
     bb = 1.0/(dy*dy)
+    # 2nd order centered difference scheme
     lap = aa*(w[2:nx+1,1:ny]-2.0*w[1:nx,1:ny]+w[0:nx-1,1:ny]) \
         + bb*(w[1:nx,2:ny+1]-2.0*w[1:nx,1:ny]+w[1:nx,0:ny-1])
     return lap
@@ -145,3 +147,55 @@ def export_data(nx,ny,n,w,s,t):
         os.makedirs('./Results/'+folder)
     filename = './Results/'+folder+'/data_' + str(int(n))+'.npz'
     np.savez(filename,w=w,s=s,t=t)
+
+def import_data(nx,ny,n):
+    folder = 'data_'+ str(nx) + '_' + str(ny)
+    filename = './Results/'+folder+'/data_' + str(int(n))+'.npz'
+    data = np.load(filename)
+    w = data['w']
+    s = data['s']
+    t = data['t']
+    return w,s,t
+
+def POD_svd(nx,ny,dx,dy,nstart,nend,nstep,nr):
+    ns = int((nend-nstart)/nstep)
+    #compute temporal correlation matrix
+    Aw = np.zeros([(nx+1)*(ny+1),ns+1]) #vorticity
+    At = np.zeros([(nx+1)*(ny+1),ns+1]) #temperature
+    ii = 0
+    for i in range(nstart,nend+1,nstep):
+        w,s,t = import_data(nx,ny,i)
+        Aw[:,ii] = w.reshape([-1,])
+        At[:,ii] = t.reshape([-1,])
+        ii = ii + 1
+
+    #mean subtraction
+    wm = np.mean(Aw,axis=1)
+    tm = np.mean(At,axis=1)
+
+    Aw = Aw - wm.reshape([-1,1])
+    At = At - tm.reshape([-1,1])
+
+    #singular value decomposition
+    Uw, Sw, Vhw = LA.svd(Aw, full_matrices=False)
+    Ut, St, Vht = LA.svd(At, full_matrices=False)
+
+    Phiw = Uw[:,:nr]
+    Lw = Sw**2
+    #compute RIC (relative importance index)
+    RICw = sum(Lw[:nr])/sum(Lw)*100
+
+    Phit = Ut[:,:nr]
+    Lt = St**2
+    #compute RIC (relative importance index)
+    RICt = sum(Lt[:nr])/sum(Lt)*100
+
+    return wm,Phiw,Lw/sum(Lw),RICw , tm,Phit,Lt/sum(Lt),RICt
+
+def PODproj_svd(u,Phi): #Projection
+    a = np.dot(u.T,Phi)  # u = Phi * a.T if shape of a is [ns,nr]
+    return a
+
+def PODrec_svd(a,Phi): #Reconstruction
+    u = np.dot(Phi,a.T)
+    return u
