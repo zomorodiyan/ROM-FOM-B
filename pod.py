@@ -5,7 +5,7 @@ edited by Mehrdad, https://github.com/zomorodiyan
 import numpy as np
 import os
 from tools import jacobian, laplacian, poisson_fst, \
-                  import_data, POD_svd, PODproj_svd
+                  import_data, pod_svd, podproj_svd
 
 # Inputs
 lx = 8; ly = 1
@@ -19,11 +19,11 @@ dx = lx/nx; dy = ly/ny
 x = np.linspace(0.0,lx,nx+1); y = np.linspace(0.0,ly,ny+1)
 X, Y = np.meshgrid(x, y, indexing='ij')
 
-#%% POD basis generation
+#%% pod basis generation
 nstart= 0; nend = nt; nstep = freq
 nr = 50 #number of basis to store [we might not need to *use* all of them]
 #compute  mean field and basis functions for potential voriticity
-wm,Phiw,Lw,RICw , tm,Phit,Lt,RICt  = POD_svd(nx,ny,dx,dy,nstart,nend,nstep,nr)
+wm,Phiw,Lw,RICw , tm,Phit,Lt,RICt  = pod_svd(nx,ny,dx,dy,nstart,nend,nstep,nr)
 
 
 #%% Compute Streamfunction mean and basis functions
@@ -55,10 +55,10 @@ ii = 0
 for i in range(nstart,nend+1,nstep):
     w,s,t = import_data(nx,ny,i)
     tmp = w.reshape([-1,])-wm
-    aTrue[ii,:] = PODproj_svd(tmp,Phiw)
+    aTrue[ii,:] = podproj_svd(tmp,Phiw)
 
     tmp = t.reshape([-1,])-tm
-    bTrue[ii,:] = PODproj_svd(tmp,Phit)
+    bTrue[ii,:] = podproj_svd(tmp,Phit)
 
     ii = ii + 1
 
@@ -67,10 +67,7 @@ for i in range(nstart,nend+1,nstep):
 
 
 #%% Save data
-folder = 'data_'+ str(nx) + '_' + str(ny)
-if not os.path.exists('./POD/'+folder):
-    os.makedirs('./POD/'+folder)
-filename = './POD/'+folder+'/POD_data.npz'
+filename = './results/pod_' + str(nx) + '_' + str(ny) + '.npz'
 np.savez(filename, wm = wm, Phiw = Phiw,  sm = sm, Phis = Phis,  \
                    tm = tm, Phit = Phit, \
                    aTrue = aTrue, bTrue = bTrue,\

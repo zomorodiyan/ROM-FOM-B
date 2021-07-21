@@ -142,22 +142,22 @@ def velocity(nx,ny,dx,dy,s):
     return u,v
 
 def export_data(nx,ny,n,w,s,t):
-    folder = 'data_'+ str(nx) + '_' + str(ny)
-    if not os.path.exists('./Results/'+folder):
-        os.makedirs('./Results/'+folder)
-    filename = './Results/'+folder+'/data_' + str(int(n))+'.npz'
+    folder = 'fom_'+ str(nx) + '_' + str(ny)
+    if not os.path.exists('./results/'+folder):
+        os.makedirs('./results/'+folder)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
     np.savez(filename,w=w,s=s,t=t)
 
 def import_data(nx,ny,n):
-    folder = 'data_'+ str(nx) + '_' + str(ny)
-    filename = './Results/'+folder+'/data_' + str(int(n))+'.npz'
+    folder = 'fom_'+ str(nx) + '_' + str(ny)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
     data = np.load(filename)
     w = data['w']
     s = data['s']
     t = data['t']
     return w,s,t
 
-def POD_svd(nx,ny,dx,dy,nstart,nend,nstep,nr):
+def pod_svd(nx,ny,dx,dy,nstart,nend,nstep,nr):
     ns = int((nend-nstart)/nstep)
     #compute temporal correlation matrix
     Aw = np.zeros([(nx+1)*(ny+1),ns+1]) #vorticity
@@ -192,10 +192,22 @@ def POD_svd(nx,ny,dx,dy,nstart,nend,nstep,nr):
 
     return wm,Phiw,Lw/sum(Lw),RICw , tm,Phit,Lt/sum(Lt),RICt
 
-def PODproj_svd(u,Phi): #Projection
+def podproj_svd(u,Phi): #Projection
     a = np.dot(u.T,Phi)  # u = Phi * a.T if shape of a is [ns,nr]
     return a
 
-def PODrec_svd(a,Phi): #Reconstruction
+def podrec_svd(a,Phi): #Reconstruction
     u = np.dot(Phi,a.T)
     return u
+
+def window_data(serie, window_size):
+    n_snapshots = serie.shape[0]
+    n_states = serie.shape[1]
+    ytrain = serie[window_size:,:]
+    xtrain = np.zeros((n_snapshots-window_size, window_size, n_states))
+    for i in range(n_snapshots-window_size):
+        tmp = serie[i,:]
+        for j in range(1,window_size):
+            tmp = np.vstack((tmp,serie[i+j,:]))
+        xtrain[i,:,:] = tmp
+    return xtrain , ytrain
