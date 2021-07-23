@@ -67,7 +67,7 @@ for i in range(nstart,nend+1,nstep):
 
 
 #%% Save data
-filename = './results/pod_' + str(nx) + '_' + str(ny) + '.npz'
+filename = './results/pod_' + str(nx) + 'x' + str(ny) + '.npz'
 np.savez(filename, wm = wm, Phiw = Phiw,  sm = sm, Phis = Phis,  \
                    tm = tm, Phit = Phit, \
                    aTrue = aTrue, bTrue = bTrue,\

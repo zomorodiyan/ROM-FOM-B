@@ -13,7 +13,7 @@ from tools import window_data
 #%% Main program
 # Load Data
 nx = 128; ny = int(nx/8)
-filename = './results/pod_'+ str(nx) + '_' + str(ny) + '.npz'
+filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
 
@@ -21,6 +21,8 @@ aTrue = data['aTrue']; bTrue = data['bTrue']
 data = np.concatenate((aTrue, bTrue), axis=1) # axes 0:snapshots 1:states
 scaler = MinMaxScaler(feature_range=(-1,1))
 scaled_data = scaler.fit_transform(data)
+filename = './results/scaler_' + str(nx) + 'x' + str(ny) + '.npz'
+np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 
 # Training Data X & Y
 serie = scaled_data
@@ -59,12 +61,12 @@ plt.semilogy(epochs, loss, 'b', label='Training loss')
 plt.semilogy(epochs, val_loss, 'r', label='Validation loss')
 plt.title('Training and validation loss')
 plt.legend()
-filename = 'results/loss_' + str(n_states) + '.png'
+filename = 'results/loss_' + str(nx) + 'x' + str(ny) + '.png'
 plt.savefig(filename, dpi = 200)
 plt.show()
 
 #Removing old models
-model_name = 'results/lstm_' + str(n_states) + '.h5'
+model_name = 'results/lstm_' + str(nx) + 'x' + str(ny) + '.h5'
 if os.path.isfile(model_name):
    os.remove(model_name)
 #Save the model

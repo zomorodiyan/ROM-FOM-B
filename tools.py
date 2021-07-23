@@ -142,14 +142,14 @@ def velocity(nx,ny,dx,dy,s):
     return u,v
 
 def export_data(nx,ny,n,w,s,t):
-    folder = 'fom_'+ str(nx) + '_' + str(ny)
+    folder = 'fom_'+ str(nx) + 'x' + str(ny)
     if not os.path.exists('./results/'+folder):
         os.makedirs('./results/'+folder)
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
     np.savez(filename,w=w,s=s,t=t)
 
 def import_data(nx,ny,n):
-    folder = 'fom_'+ str(nx) + '_' + str(ny)
+    folder = 'fom_'+ str(nx) + 'x' + str(ny)
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
     data = np.load(filename)
     w = data['w']
