@@ -2,38 +2,8 @@ import numpy as np
 from silence_tensorflow import silence_tensorflow
 silence_tensorflow()
 from tensorflow.keras.models import load_model
-from tools import initial, podproj_svd, RK3, BoussRHS
-
-def RK3t(rhs,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt):
-# time integration using third-order Runge Kutta method
-    aa = 1.0/3.0
-    bb = 2.0/3.0
-
-    tt = np.zeros([nx+1,ny+1])
-    tt = np.copy(t)
-
-    #stage-1
-    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,t)
-    tt[1:nx,1:ny] = t[1:nx,1:ny] + dt*rt
-    tt = tbc(tt)
-
-    #stage-2
-    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,tt)
-    tt[1:nx,1:ny] = 0.75*t[1:nx,1:ny] + 0.25*tt[1:nx,1:ny] + 0.25*dt*rt
-    tt = tbc(tt)
-
-    #stage-3
-    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,tt)
-    t[1:nx,1:ny] = aa*t[1:nx,1:ny] + bb*tt[1:nx,1:ny] + bb*dt*rt
-    t = tbc(t)
-    return t
-
-def BoussRHS_t(nx,ny,dx,dy,Re,Pr,Ri,w,s,t):
-    rt = np.zeros([nx-1,ny-1]) #define
-    Lt = laplacian(nx,ny,dx,dy,t) #laplacian terms
-    Jt = jacobian(nx,ny,dx,dy,t,s) #Jacobian terms
-    rt = -Jt + (1/(Re*Pr))*Lt # t-equation
-    return rt
+from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t, BoussRHS_t
+from sklearn.preprocessing import MinMaxScaler
 
 lx = 8 #length in x direction
 ly = 1 #length in y direction
@@ -78,46 +48,74 @@ Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
 nr = 50
 
-alpha = np.zeros([ns+1,nr])
-beta = np.zeros([ns+1,nr])
-xtest = np.zeros((ns-window_size, window_size, 2*nr))
+alpha_window = np.zeros([window_size,nr])
+beta_window = np.zeros([window_size,nr])
+xtest = np.empty((ns-window_size, window_size, 2*nr))
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 w_mean = data['wm']; Phiw = data['Phiw']
 t_mean = data['tm']; Phit = data['Phit']
+s_mean = data['sm']; Phis = data['Phis']
 
 n=0; time=0;
 w,s,t = initial(nx,ny)
 w_1d = w.reshape([-1,])
 w_spread_1d = w_1d - w_mean
-alpha[0,:] = podproj_svd(w_spread_1d,Phiw)
+alpha_window[0,:] = podproj_svd(w_spread_1d,Phiw)
 t_1d = t.reshape([-1,])
 t_spread_1d = t_1d - t_mean
-beta[0,:] = podproj_svd(t_spread_1d,Phit)
+beta_window[0,:] = podproj_svd(t_spread_1d,Phit)
 
 # for the first window_size steps
 #   1-run fom, get psi omega theta for each time step
 #   2-run phi_psi phi_omega phi_theta projection on psi omega theta,
 #     get alpha beta for each time step
 
-#calculate tm
 for i in range(1, window_size):
     time = time+dt
     w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
     w_1d = w.reshape([-1,])
     w_spread_1d = w_1d - w_mean
-    alpha[i,:] = podproj_svd(w_spread_1d,Phiw)
+    alpha_window[i,:] = podproj_svd(w_spread_1d,Phiw)
     t_1d = t.reshape([-1,])
     t_spread_1d = t_1d - t_mean
-    beta[i,:] = podproj_svd(t_spread_1d,Phit)
-    xtest[0,:,:] = np.concatenate((alpha, beta), axis=1)[0:window_size,:] # axes 0:snapshots 1:states
+    beta_window[i,:] = podproj_svd(t_spread_1d,Phit)
+    alphabeta_window = np.concatenate((alpha_window, beta_window), axis=1)
+
+
+filename = './results/scaler_'+ str(nx) + 'x' + str(ny) + '.npz'
+data2 = np.load(filename)
+scalermin = data2['scalermin']; scalermax = data2['scalermax']
+scaler = MinMaxScaler(feature_range=(-1,1))
+scaler.fit([scalermin,scalermax])
+alphabeta_window = scaler.fit_transform(alphabeta_window)
+# Recreate the lstm model, including its weights and the optimizer
+model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
+#model.summary()
 
 #for i in range(window_size, nt):
+for i in range(window_size, 2*window_size): # just for test: replace with the upper line
+    alphalstmbeta_new = model.predict(np.expand_dims(alphabeta_window, axis=0))
+    alpha_new = alphalstmbeta_new[:,0:nr]
+    # update w s using alpha_new and phiw phis
+    alphalstmbeta_new_invscaled = scaler.inverse_transform(alphalstmbeta_new)
+    alpha_new_invscaled = alphalstmbeta_new_invscaled[:,0:nr]
+    w_1d = podrec_svd(alpha_new_invscaled, Phiw) + w_mean.reshape([-1,1]) # maybe no need to reshape, (whats the difference between [-1,] and [-1,1]
+    w = w_1d.reshape([nx+1,-1])
+    s_1d = podrec_svd(alpha_new, Phis) + s_mean.reshape([-1,1])
+    s = s_1d.reshape([nx+1,-1])
+    t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
+    t_1d = t.reshape([-1,])
+    t_spread_1d = t_1d - t_mean
+    beta_new = np.expand_dims(podproj_svd(t_spread_1d,Phit), axis=0)
+    alphabeta_new = np.concatenate((alpha_new, beta_new), axis=1)
+    for i in range(1, window_size):
+        alphabeta_window[i-1,:] = alphabeta_window[i,:]
+    alphabeta_window[window_size-1,:] = alphabeta_new
+
 
 # for the rest of the steps
 #   3-run model on a window of alpha beta, get alpha_new (rom/ml)
 #   4-run reconstruct on phi_psi phi_omega alpha_new, get psi_new omega_new
 #   5-run fom_energy on psi_new omega_new theta, get theta_new
 #   6-run project on phi_psi phi_omega theta_new, get beta_new
-
-

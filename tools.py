@@ -211,3 +211,35 @@ def window_data(serie, window_size):
             tmp = np.vstack((tmp,serie[i+j,:]))
         xtrain[i,:,:] = tmp
     return xtrain , ytrain
+
+
+def RK3t(rhs,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt):
+# time integration using third-order Runge Kutta method
+    aa = 1.0/3.0
+    bb = 2.0/3.0
+
+    tt = np.zeros([nx+1,ny+1])
+    tt = np.copy(t)
+
+    #stage-1
+    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,t)
+    tt[1:nx,1:ny] = t[1:nx,1:ny] + dt*rt
+    tt = tbc(tt)
+
+    #stage-2
+    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,tt)
+    tt[1:nx,1:ny] = 0.75*t[1:nx,1:ny] + 0.25*tt[1:nx,1:ny] + 0.25*dt*rt
+    tt = tbc(tt)
+
+    #stage-3
+    rt = rhs(nx,ny,dx,dy,Re,Pr,Ri,w,s,tt)
+    t[1:nx,1:ny] = aa*t[1:nx,1:ny] + bb*tt[1:nx,1:ny] + bb*dt*rt
+    t = tbc(t)
+    return t
+
+def BoussRHS_t(nx,ny,dx,dy,Re,Pr,Ri,w,s,t):
+    rt = np.zeros([nx-1,ny-1]) #define
+    Lt = laplacian(nx,ny,dx,dy,t) #laplacian terms
+    Jt = jacobian(nx,ny,dx,dy,t,s) #Jacobian terms
+    rt = -Jt + (1/(Re*Pr))*Lt # t-equation
+    return rt
