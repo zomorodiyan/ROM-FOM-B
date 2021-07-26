@@ -73,7 +73,8 @@ beta_window[0,:] = podproj_svd(t_spread_1d,Phit)
 for i in range(1, window_size):
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
-    w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
+    for i in range (0,int(nt/ns)):
+        w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
     #run phi_psi phi_omega phi_theta projection on psi omega theta,
     w_1d = w.reshape([-1,])
     w_spread_1d = w_1d - w_mean
