@@ -72,8 +72,8 @@ beta_window[0,:] = podproj_svd(t_spread_1d,Phit)
 #     get alpha beta for each time step
 
 for i in range(1, window_size):
-    time = time+dt
-    w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
+    time = time+dt*nt/ns
+    w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
     w_1d = w.reshape([-1,])
     w_spread_1d = w_1d - w_mean
     alpha_window[i,:] = podproj_svd(w_spread_1d,Phiw)
@@ -93,8 +93,15 @@ alphabeta_window = scaler.fit_transform(alphabeta_window)
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 #model.summary()
 
+# for the rest of the steps
+#   3-run model on a window of alpha beta, get alpha_new (rom/ml)
+#   4-run reconstruct on phi_psi phi_omega alpha_new, get psi_new omega_new
+#   5-run fom_energy on psi_new omega_new theta, get theta_new
+#   6-run project on phi_psi phi_omega theta_new, get beta_new
+
 #for i in range(window_size, nt):
-for i in range(window_size, 2*window_size): # just for test: replace with the upper line
+for i in range(window_size, 2*window_size): # just for test: replace with the line above
+    time = time+dt*nt/ns
     alphalstmbeta_new = model.predict(np.expand_dims(alphabeta_window, axis=0))
     alpha_new = alphalstmbeta_new[:,0:nr]
     # update w s using alpha_new and phiw phis
@@ -104,7 +111,7 @@ for i in range(window_size, 2*window_size): # just for test: replace with the up
     w = w_1d.reshape([nx+1,-1])
     s_1d = podrec_svd(alpha_new, Phis) + s_mean.reshape([-1,1])
     s = s_1d.reshape([nx+1,-1])
-    t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
+    t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
     t_1d = t.reshape([-1,])
     t_spread_1d = t_1d - t_mean
     beta_new = np.expand_dims(podproj_svd(t_spread_1d,Phit), axis=0)
@@ -113,9 +120,3 @@ for i in range(window_size, 2*window_size): # just for test: replace with the up
         alphabeta_window[i-1,:] = alphabeta_window[i,:]
     alphabeta_window[window_size-1,:] = alphabeta_new
 
-
-# for the rest of the steps
-#   3-run model on a window of alpha beta, get alpha_new (rom/ml)
-#   4-run reconstruct on phi_psi phi_omega alpha_new, get psi_new omega_new
-#   5-run fom_energy on psi_new omega_new theta, get theta_new
-#   6-run project on phi_psi phi_omega theta_new, get beta_new
