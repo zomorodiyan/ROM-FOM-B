@@ -148,8 +148,24 @@ def export_data(nx,ny,n,w,s,t):
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
     np.savez(filename,w=w,s=s,t=t)
 
+def export_data_test(nx,ny,n,w,s,t):
+    folder = 'test_'+ str(nx) + 'x' + str(ny)
+    if not os.path.exists('./results/'+folder):
+        os.makedirs('./results/'+folder)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
+    np.savez(filename,w=w,s=s,t=t)
+
 def import_data(nx,ny,n):
     folder = 'fom_'+ str(nx) + 'x' + str(ny)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
+    data = np.load(filename)
+    w = data['w']
+    s = data['s']
+    t = data['t']
+    return w,s,t
+
+def import_data_test(nx,ny,n):
+    folder = 'test_'+ str(nx) + 'x' + str(ny)
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
     data = np.load(filename)
     w = data['w']

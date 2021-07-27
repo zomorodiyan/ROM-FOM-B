@@ -2,12 +2,13 @@ import numpy as np
 from silence_tensorflow import silence_tensorflow
 silence_tensorflow()
 from tensorflow.keras.models import load_model
-from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t, BoussRHS_t
+from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t,\
+        BoussRHS_t, export_data_test
 from sklearn.preprocessing import MinMaxScaler
 
 lx = 8 #length in x direction
 ly = 1 #length in y direction
-nx = 128 #number of meshes in x direction
+nx = 1024 #number of meshes in x direction
 ny = int(nx/8) #number of meshes in y direction
 
 Re = 1e4 #Reynolds Number: inertial/viscous
@@ -41,7 +42,7 @@ X, Y = np.meshgrid(x, y, indexing='ij')
 # Inputs (move to yml)
 window_size = 3
 lx = 8; ly = 1
-nx = 128; ny = int(nx/8)
+nx = 1024; ny = int(nx/8)
 Re = 1e4; Ri = 4; Pr = 1
 Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
@@ -60,6 +61,7 @@ s_mean = data['sm']; Phis = data['Phis']
 # init
 n=0; time=0;
 w,s,t = initial(nx,ny)
+export_data_test(nx,ny,0,w,s,t)
 w_1d = w.reshape([-1,])
 w_spread_1d = w_1d - w_mean
 alpha_window[0,:] = podproj_svd(w_spread_1d,Phiw)
@@ -73,7 +75,7 @@ beta_window[0,:] = podproj_svd(t_spread_1d,Phit)
 for i in range(1, window_size):
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
-    for i in range (0,int(nt/ns)):
+    for j in range (0,int(nt/ns)):
         w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
     #run phi_psi phi_omega phi_theta projection on psi omega theta,
     w_1d = w.reshape([-1,])
@@ -82,6 +84,8 @@ for i in range(1, window_size):
     t_1d = t.reshape([-1,])
     t_spread_1d = t_1d - t_mean
     beta_window[i,:] = podproj_svd(t_spread_1d,Phit)
+    export_data_test(nx,ny,i,w,s,t)
+print('initial foms are done!')
 
 alphabeta_window = np.concatenate((alpha_window, beta_window), axis=1)
 filename = './results/scaler_'+ str(nx) + 'x' + str(ny) + '.npz'
@@ -91,15 +95,12 @@ scaler = MinMaxScaler(feature_range=(-1,1))
 scaler.fit([scalermin,scalermax])
 alphabeta_window = scaler.transform(alphabeta_window)
 
-print('alphabeta_old: ', alphabeta_window[2,:])
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 #model.summary()
 
-# for the rest of the steps
-
-#for i in range(window_size, nt):
-for i in range(window_size, 2*window_size): # just for test: replace with the line above
+for i in range(window_size, ns+1):
+    print('i: ', i)
     time = time+dt*nt/ns; n = n+1
     #run model on a window of alpha beta, get alpha_new (rom/ml)
     alphalstmbeta_new = model.predict(np.expand_dims(alphabeta_window, axis=0))
@@ -119,7 +120,7 @@ for i in range(window_size, 2*window_size): # just for test: replace with the li
     #run project on phi_theta theta_new, get beta_new
     beta_new = np.expand_dims(podproj_svd(t_spread_1d,Phit), axis=0)
     alphabeta_new = np.concatenate((alpha_new, beta_new), axis=1)
-    for i in range(1, window_size):
-        alphabeta_window[i-1,:] = alphabeta_window[i,:]
+    for j in range(1, window_size):
+        alphabeta_window[j-1,:] = alphabeta_window[j,:]
     alphabeta_window[window_size-1,:] = alphabeta_new
-    print('alphabeta_new: ', alphabeta_window[2,:])
+    export_data_test(nx,ny,i,w,s,t)

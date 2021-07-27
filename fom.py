@@ -7,12 +7,13 @@ import numpy as np
 
 #%% Define functions
 from tools import jacobian, laplacian, initial, RK3, tbc, \
-                  poisson_fst, BoussRHS, velocity, export_data
+                  poisson_fst, BoussRHS, velocity, export_data,\
+                  export_data_test
 
 #%% Main program
 # Inputs
 lx = 8; ly = 1
-nx = 128; ny = int(nx/8)
+nx = 1024; ny = int(nx/8)
 Re = 1e4; Ri = 4; Pr = 1
 Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
@@ -29,6 +30,8 @@ export_data(nx,ny,n,w,s,t)
 
 #%% time integration
 for n in range(1,nt+1):
+    if(n==5000):
+        export_data_test(nx,ny,0,w,s,t)
     time = time+dt
     w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
     u,v = velocity(nx,ny,dx,dy,s)
@@ -43,3 +46,4 @@ for n in range(1,nt+1):
 
     if n%freq==0:
         export_data(nx,ny,n,w,s,t)
+        print(n)

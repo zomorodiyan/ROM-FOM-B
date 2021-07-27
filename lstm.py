@@ -12,7 +12,7 @@ from tools import window_data
 
 #%% Main program
 # Load Data
-nx = 128; ny = int(nx/8)
+nx = 1024; ny = int(nx/8)
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -47,7 +47,7 @@ model.add(Dense(n_states))
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=100, batch_size=64,
+history = model.fit(xtrain, ytrain, epochs=1000, batch_size=64,
         validation_split=0.20, verbose=1)
 
 #evaluate the model
