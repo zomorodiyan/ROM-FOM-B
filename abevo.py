@@ -6,7 +6,8 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
 # Load Data
-nx = 1024; ny = int(nx/8)
+nx = 256; ny = int(nx/8)
+ws=5;
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -21,9 +22,8 @@ print('scaled.shape: ', scaled.shape)
 
 t = np.arange(0, 801, 1)
 
-ws=3
-ablstm = np.empty([801,2*10])
-xtest = np.empty([1,ws,2*10])
+ablstm = np.empty([801,scaled.shape[1]])
+xtest = np.empty([1,ws,scaled.shape[1]])
 
 print("ablstm.shape: ", ablstm.shape)
 
@@ -40,7 +40,7 @@ for i in range(ws, 801):
         xtest[0,j,:] = xtest[0,j+1,:]
     xtest[0,ws-1,:] = ablstm[i,:]
 
-n=1
+n=9
 s1 = scaled[:,n]
 print("s1.shape: ", s1.shape)
 s2 = ablstm[:,n]

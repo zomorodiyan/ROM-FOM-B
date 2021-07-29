@@ -12,7 +12,8 @@ from tools import window_data
 
 #%% Main program
 # Load Data
-nx = 1024; ny = int(nx/8)
+nx = 256; ny = int(nx/8)
+window_size = 5
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -27,7 +28,6 @@ np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 # Training Data X & Y
 serie = scaled_data
 n_states = serie.shape[1]
-window_size = 3
 xtrain, ytrain = window_data(serie=serie,window_size=window_size)
 
 #Shuffling data
@@ -39,15 +39,15 @@ ytrain = ytrain[perm,:]
 
 #create the LSTM architecture
 model = Sequential()
-model.add(LSTM(30, input_shape=(window_size, n_states), return_sequences=True, activation='tanh'))
-model.add(LSTM(30, input_shape=(window_size, n_states), activation='tanh'))
+model.add(LSTM(80, input_shape=(window_size, n_states), return_sequences=True, activation='tanh'))
+model.add(LSTM(80, input_shape=(window_size, n_states), activation='tanh'))
 model.add(Dense(n_states))
 
 #compile model
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=1000, batch_size=64,
+history = model.fit(xtrain, ytrain, epochs=250, batch_size=64,
         validation_split=0.20, verbose=1)
 
 #evaluate the model

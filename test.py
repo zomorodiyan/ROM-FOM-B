@@ -6,7 +6,7 @@ import os
 from tools import import_data_test
 
 nt = int(np.round(8/5e-4))
-nx = 1024; ny = int(nx/8)
+nx = 256; ny = int(nx/8)
 lx = 8
 ly = 1
 x = np.linspace(0.0,lx,nx+1)
@@ -69,4 +69,4 @@ cbar_ax = fig.add_axes([0.125, 0.03, 0.775, 0.045])
 CB = fig.colorbar(cs, cax = cbar_ax, ticks=ctick, orientation='horizontal')
 CB.ax.get_children()[0].set_linewidths(3.0)
 
-plt.savefig('./results/BSFOM.png', dpi = 500, bbox_inches = 'tight')
+plt.savefig('./results/BSROMFOM.png', dpi = 500, bbox_inches = 'tight')

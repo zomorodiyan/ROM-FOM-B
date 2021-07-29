@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 nt = int(np.round(8/5e-4))
-nx = 1028; ny = int(nx/8)
+nx = 256; ny = int(nx/8)
 lx = 8
 ly = 1
 x = np.linspace(0.0,lx,nx+1)

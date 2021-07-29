@@ -13,7 +13,7 @@ from tools import jacobian, laplacian, initial, RK3, tbc, \
 #%% Main program
 # Inputs
 lx = 8; ly = 1
-nx = 1024; ny = int(nx/8)
+nx = 128; ny = int(nx/8)
 Re = 1e4; Ri = 4; Pr = 1
 Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
