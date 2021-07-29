@@ -77,54 +77,67 @@ b_window[0,:] = podproj_svd(t_spread_1d,Phit)
 for i in range(1, window_size):
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
-    for j in range (0,int(nt/ns)):
+    for j in range (0,freq):
         w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
-    #run phi_psi phi_omega phi_theta projection on psi omega theta,
+    # make omega_spread_1d to use for projection to get alpha
     w_1d = w.reshape([-1,])
     w_spread_1d = w_1d - w_mean
+    # get new <<alpha>>, project w_spread on Phiw
     a_window[i,:] = podproj_svd(w_spread_1d,Phiw)
+    # make theta_spread_1d to use for projection to get beta
     t_1d = t.reshape([-1,])
     t_spread_1d = t_1d - t_mean
+    # get new <<beta>>, project w_spread on Phit
     b_window[i,:] = podproj_svd(t_spread_1d,Phit)
-    export_data_test(nx,ny,i,w,s,t)
-print('initial foms are done!')
-print("w: ", w); print("s: ", s); print("t: ", t);
 
+    export_data_test(nx,ny,i,w,s,t) # for test contour
+
+# concatenate alpha beta together
 ab_window = np.concatenate((a_window, b_window), axis=1)
+# reconstruct the same scaler as the training time using the saved min and max
 filename = './results/scaler_'+ str(nx) + 'x' + str(ny) + '.npz'
 data2 = np.load(filename)
 scalermin = data2['scalermin']; scalermax = data2['scalermax']
 scaler = MinMaxScaler(feature_range=(-1,1))
 scaler.fit([scalermin,scalermax])
+# scale alphabeta_window
 ab_window = scaler.transform(ab_window)
+
 abromfom[0:window_size,:] = ab_window # for diagrams
 
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 
 for i in range(window_size, ns+1):
+    if(i%10==0):
+        print('ROMFOM iteration #', i)
+
     time = time+dt*nt/ns; n = n+1
-    # use fom_energy on psi omega theta, get theta_new
+    # update <<theta>>, use fom_energy on psi omega theta
     t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
-    #run model on a window of alpha beta, get alpha_new (rom/ml)
+    # get new <<alpha>>, run model on a window of alpha beta
     ab_lstm = model.predict(np.expand_dims(ab_window, axis=0))
     a_new = ab_lstm[:,0:nr]
-    # update w s using alpha_new and phiw phis
+    # inverse scale alphabeta and extract alpha to use in rec. of omega psi
     ab_lstm_invscal = scaler.inverse_transform(ab_lstm)
     a_new_invscal = ab_lstm_invscal[:,0:nr]
+    # update <<omega>> using alpha_new_invscal and phiw
     w_1d = podrec_svd(a_new_invscal, Phiw) + w_mean.reshape([-1,1])
     w = w_1d.reshape([nx+1,-1])
+    # update <<psi>> using alpha_new_invscal and phis
     s_1d = podrec_svd(a_new_invscal, Phis) + s_mean.reshape([-1,1])
     s = s_1d.reshape([nx+1,-1])
-    # project theta_spread on phi_theta, get beta_new
+    # get new <<beta>>, project theta_spread on phi_theta, get <<beta>>
     t_1d = t.reshape([-1,])
     b_new = np.expand_dims(podproj_svd(t_1d - t_mean,Phit), axis=0)
-    # make ab_new and put it at the end of ab_window and shift the rest back
+    # make ab_new and scale so it can be used for the model
     ab_new = scaler.transform(np.concatenate((a_new_invscal,\
         b_new), axis=1))
+    # put ab_new at the end of ab_window and shift the rest back
     for j in range(1, window_size):
         ab_window[j-1,:] = ab_window[j,:]
     ab_window[window_size-1,:] = ab_new
+
     abromfom[i,:] = ab_new # for diagrams
     export_data_test(nx,ny,i,w,s,t) # for romfom contour
 
@@ -135,30 +148,22 @@ ws=5;
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
-print('aTrue.shape: ', aTrue.shape)
-print('bTrue.shape: ', bTrue.shape)
 
 # Scale Data
 data = np.concatenate((aTrue, bTrue), axis=1) # axes 0:snapshots 1:states
 scaler2 = MinMaxScaler(feature_range=(-1,1))
 scaled = scaler2.fit_transform(data)
-print('scaled.shape: ', scaled.shape)
-
 t = np.arange(0, 801, 1)
-
 ablstm = np.empty([801,scaled.shape[1]])
 xtest = np.empty([1,ws,scaled.shape[1]])
-
-print("ablstm.shape: ", ablstm.shape)
-
 ablstm[0:ws,:] = scaled[0:ws,:]
-print("ablstm[0:ws,1]: ", ablstm[0:ws,1])
 
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 xtest = np.copy(np.expand_dims(ablstm[0:ws,:], axis=0))
 for i in range(ws, 801):
-    print(i)
+    if(i%10==0):
+        print('ROM iteration #', i)
     ablstm[i,:] = model.predict(xtest)
     for j in range(ws-1):
         xtest[0,j,:] = xtest[0,j+1,:]
@@ -166,11 +171,8 @@ for i in range(ws, 801):
 
 for n in range(0,20):
     s1 = scaled[:,n]
-    print("s1.shape: ", s1.shape)
     s2 = ablstm[:,n]
-    print("s2.shape: ", s2.shape)
     s3 = abromfom[:,n]
-    print("s3.shape: ", s3.shape)
 
     fig, ax = plt.subplots()
     ax.plot(t, s1)
