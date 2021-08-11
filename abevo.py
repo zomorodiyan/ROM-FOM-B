@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # Load Data
 nx = 256; ny = int(nx/8)
-ws=5;
+ws=5
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -20,25 +20,23 @@ scaler = MinMaxScaler(feature_range=(-1,1))
 scaled = scaler.fit_transform(data)
 print('scaled.shape: ', scaled.shape)
 
-t = np.arange(0, 801, 1)
+t = np.arange(0, 1601, 1)
 
-ablstm = np.empty([801,scaled.shape[1]])
+ablstm = np.empty([1601,scaled.shape[1]])
 xtest = np.empty([1,ws,scaled.shape[1]])
 
-print("ablstm.shape: ", ablstm.shape)
-
-ablstm[0:ws,:] = scaled[0:ws,:]
-print("ablstm[0:ws,1]: ", ablstm[0:ws,1])
+n_each = 10
+ablstm[0:ws*n_each,:] = scaled[0:ws*n_each,:]
 
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
-xtest = np.copy(np.expand_dims(ablstm[0:ws,:], axis=0))
-for i in range(ws, 801):
+
+
+xtest = np.copy(np.expand_dims(ablstm[0:ws*n_each:n_each,:], axis=0))
+for i in range(ws*n_each, 1601):
     print(i)
     ablstm[i,:] = model.predict(xtest)
-    for j in range(ws-1):
-        xtest[0,j,:] = xtest[0,j+1,:]
-    xtest[0,ws-1,:] = ablstm[i,:]
+    xtest = np.copy(np.expand_dims(ablstm[i-ws*n_each+1:i-n_each+2:n_each,:], axis=0))
 
 n=9
 s1 = scaled[:,n]
