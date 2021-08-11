@@ -184,7 +184,8 @@ for n in range(0,20):
     ax.grid()
     #plt.ylim(-1,1)
     fig.savefig('./results/'+str(nx)+'_ab['+str(n)+']')
-    plt.show()
+    if(n==0):
+        plt.show()
     plt.clf()
 
 
