@@ -29,16 +29,13 @@ np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 serie = scaled_data
 n_states = serie.shape[1]
 
-n_each = 1
+n_each = 10
 xtrain = np.empty((0,window_size,serie.shape[1]), float)
 ytrain = np.empty((0,serie.shape[1]), float)
 for i in range(n_each):
     serie_each = serie[i::n_each,:]
     xtrain_each, ytrain_each = window_data(serie=serie_each,window_size=window_size)
     xtrain = np.vstack((xtrain, xtrain_each))
-
-    print('ytrain.shape: ', ytrain.shape)
-    print('ytrain_each.shape: ', ytrain_each.shape)
     ytrain = np.vstack((ytrain, ytrain_each))
 
 #Shuffling data
