@@ -6,7 +6,7 @@ from tensorflow.keras.models import load_model
 from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t,\
         BoussRHS_t, export_data_test
 from sklearn.preprocessing import MinMaxScaler
-
+ns = 800
 lx = 8 #length in x direction
 ly = 1 #length in y direction
 nx = 256 #number of meshes in x direction
@@ -20,7 +20,6 @@ Tm = 8 #maximum time
 dt = 5e-4 #time_step_size
 nt = np.int(np.round(Tm/dt)) #number of time_steps
 
-ns = 800 #number of snapshots
 freq = np.int(nt/ns) #every freq time_stap we export data
 
 #%% grid
@@ -41,17 +40,18 @@ X, Y = np.meshgrid(x, y, indexing='ij')
 # (run lstm.py)
 
 # Inputs (move to yml)
-window_size = 5
+n_each = 1
+ws = 5
 lx = 8; ly = 1
 nx = 256; ny = int(nx/8)
 Re = 1e4; Ri = 4; Pr = 1
 Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
-ns = 800; freq = int(nt/ns)
+freq = int(nt/ns)
 nr = 10
 
-abromfom = np.empty([801,2*nr]) # for diagrams
-a_window = np.empty([window_size,nr])
-b_window = np.empty([window_size,nr])
+abromfom = np.empty([ns+1,2*nr])
+a_window = np.empty([ws*n_each,nr])
+b_window = np.empty([ws*n_each,nr])
 
 # load data
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
@@ -74,7 +74,7 @@ b_window[0,:] = podproj_svd(t_spread_1d,Phit)
 # for the first window_size steps
 #     get alpha beta for each time step
 
-for i in range(1, window_size):
+for i in range(1, ws*n_each):
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
     for j in range (0,freq):
@@ -103,20 +103,20 @@ scaler.fit([scalermin,scalermax])
 # scale alphabeta_window
 ab_window = scaler.transform(ab_window)
 
-abromfom[0:window_size,:] = ab_window # for diagrams
+abromfom[0:ws*n_each,:] = ab_window
+ab_window_each = np.copy(abromfom[0:ws*n_each:n_each,:])
+print('input.shape: ', ab_window_each.shape)
 
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 
-for i in range(window_size, ns+1):
-    if(i%10==0):
-        print('ROMFOM iteration #', i)
-
+for i in range(ws*n_each, ns+1):
+    print('ROMFOM iteration #', i)
     time = time+dt*nt/ns; n = n+1
     # update <<theta>>, use fom_energy on psi omega theta
     t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
     # get new <<alpha>>, run model on a window of alpha beta
-    ab_lstm = model.predict(np.expand_dims(ab_window, axis=0))
+    ab_lstm = model.predict(np.expand_dims(ab_window_each, axis=0))
     a_new = ab_lstm[:,0:nr]
     # inverse scale alphabeta and extract alpha to use in rec. of omega psi
     ab_lstm_invscal = scaler.inverse_transform(ab_lstm)
@@ -127,24 +127,22 @@ for i in range(window_size, ns+1):
     # update <<psi>> using alpha_new_invscal and phis
     s_1d = podrec_svd(a_new_invscal, Phis) + s_mean.reshape([-1,1])
     s = s_1d.reshape([nx+1,-1])
-    # get new <<beta>>, project theta_spread on phi_theta, get <<beta>>
+    # get new <<beta>>, project theta_spread on phi_theta
     t_1d = t.reshape([-1,])
     b_new = np.expand_dims(podproj_svd(t_1d - t_mean,Phit), axis=0)
     # make ab_new and scale so it can be used for the model
     ab_new = scaler.transform(np.concatenate((a_new_invscal,\
         b_new), axis=1))
     # put ab_new at the end of ab_window and shift the rest back
-    for j in range(1, window_size):
-        ab_window[j-1,:] = ab_window[j,:]
-    ab_window[window_size-1,:] = ab_new
-
-    abromfom[i,:] = ab_new # for diagrams
-    export_data_test(nx,ny,i,w,s,t) # for romfom contour
+    abromfom[i,:] = ab_new
+    ab_window_each = np.copy(abromfom[i-ws*n_each+1:i-n_each+2:n_each,:])
+    print('i: ', i)
+    print('*input.shape: ', ab_window_each.shape)
+    #export_data_test(nx,ny,i,w,s,t) # for romfom contour
 
 #%% the FOM, and ROM, part of the diagrams
 # Load Data
 nx = 256; ny = int(nx/8)
-ws=5;
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -153,21 +151,19 @@ aTrue = data['aTrue']; bTrue = data['bTrue']
 data = np.concatenate((aTrue, bTrue), axis=1) # axes 0:snapshots 1:states
 scaler2 = MinMaxScaler(feature_range=(-1,1))
 scaled = scaler2.fit_transform(data)
-t = np.arange(0, 801, 1)
-ablstm = np.empty([801,scaled.shape[1]])
+t = np.arange(0, ns+1, 1)
+ablstm = np.empty([ns+1,scaled.shape[1]])
 xtest = np.empty([1,ws,scaled.shape[1]])
-ablstm[0:ws,:] = scaled[0:ws,:]
+ablstm[0:ws*n_each,:] = scaled[0:ws*n_each,:]
 
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
-xtest = np.copy(np.expand_dims(ablstm[0:ws,:], axis=0))
-for i in range(ws, 801):
-    if(i%10==0):
-        print('ROM iteration #', i)
+#xtest = np.copy(np.expand_dims(ablstm[0:ws,:], axis=0))
+xtest = np.copy(np.expand_dims(ablstm[0:ws*n_each:n_each,:], axis=0))
+for i in range(ws*n_each, ns+1):
+    print('ROM iteration #', i)
     ablstm[i,:] = model.predict(xtest)
-    for j in range(ws-1):
-        xtest[0,j,:] = xtest[0,j+1,:]
-    xtest[0,ws-1,:] = ablstm[i,:]
+    xtest = np.copy(np.expand_dims(ablstm[i-ws*n_each+1:i-n_each+2:n_each,:], axis=0))
 
 for n in range(0,20):
     s1 = scaled[:,n]

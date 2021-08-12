@@ -29,7 +29,7 @@ np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 serie = scaled_data
 n_states = serie.shape[1]
 
-n_each = 10
+n_each = 1
 xtrain = np.empty((0,window_size,serie.shape[1]), float)
 ytrain = np.empty((0,serie.shape[1]), float)
 for i in range(n_each):
@@ -55,7 +55,7 @@ model.add(Dense(n_states))
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=1000, batch_size=800,
+history = model.fit(xtrain, ytrain, epochs=5000, batch_size=800,
         validation_split=0.20, verbose=1)
 
 #evaluate the model
