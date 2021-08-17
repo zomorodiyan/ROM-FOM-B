@@ -113,6 +113,13 @@ model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 for i in range(ws*n_each, ns+1):
     print('ROMFOM iteration #', i)
     time = time+dt*nt/ns; n = n+1
+
+    # make sure about the BC. (doesn't make a difference in results)
+    for j in range(w.shape[0]):
+        w[j,0] = 0; w[j,-1]=0
+    for j in range(w.shape[1]):
+        w[0,j] = 0; w[-1,j]=0
+
     # update <<theta>>, use fom_energy on psi omega theta
     t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
     # get new <<alpha>>, run model on a window of alpha beta

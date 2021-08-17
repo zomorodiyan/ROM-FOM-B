@@ -55,7 +55,7 @@ model.add(Dense(n_states))
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=5000, batch_size=800,
+history = model.fit(xtrain, ytrain, epochs=2000, batch_size=800,
         validation_split=0.20, verbose=1)
 
 #evaluate the model
