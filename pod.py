@@ -10,8 +10,8 @@ from tools import jacobian, laplacian, poisson_fst, \
 # Inputs
 lx = 8; ly = 1
 nx = 256; ny = int(nx/8)
-Re = 1e4; Ri = 4; Pr = 1
-Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
+Re = 2e2; Ri = 4; Pr = 1
+Tm = 8; dt = 1e-3; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
 
 #%% grid

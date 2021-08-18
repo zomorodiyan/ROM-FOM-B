@@ -6,21 +6,37 @@ from tensorflow.keras.models import load_model
 from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t,\
         BoussRHS_t, export_data_test
 from sklearn.preprocessing import MinMaxScaler
-ns = 800
-lx = 8 #length in x direction
-ly = 1 #length in y direction
+
+# run a coarse fom, get psi omega theta for each step and each mesh
+# (run fom.py get fom_nx'x'ny)
+
+# run svd on psi phi theta, get phi_psi phi_omega phi_theta for each mesh
+#   and alpha beta for number of modes and each time step
+# (run pod.py get pod_nx'x'ny'.npz')
+
+# run lstm on alpha beta, get model
+# (run lstm.py get lstm_nx'x'ny'.h5')
+
+# then run this
+
+ns = 800 #number of snapshots
+n_each = 1 #the move for lstm for large number of snapshots(ns)
+nr = 10 #number of pod modes
+
 nx = 256 #number of meshes in x direction
 ny = int(nx/8) #number of meshes in y direction
+lx = 8 #length in x direction
+ly = 1 #length in y direction
 
-Re = 1e4 #Reynolds Number: inertial/viscous
+Re = 2e2 #Reynolds Number: inertial/viscous
 Ri = 4 #Richardson Number: Buoyancy/flow_shear
 Pr = 1 #Prandtl Number: momentum_diffusivity/thermal_diffusivity
 
 Tm = 8 #maximum time
-dt = 5e-4 #time_step_size
+dt = 1e-3 #time_step_size
 nt = np.int(np.round(Tm/dt)) #number of time_steps
-
 freq = np.int(nt/ns) #every freq time_stap we export data
+ws = 5 #window size
 
 #%% grid
 dx = lx/nx
@@ -29,25 +45,6 @@ x = np.linspace(0.0,lx,nx+1)
 y = np.linspace(0.0,ly,ny+1)
 X, Y = np.meshgrid(x, y, indexing='ij')
 
-# run a coarse fom, get psi omega theta for each step and each mesh
-# (run fom.py get fom_nx'x'ny)
-
-# run svd on psi phi theta, get phi_psi phi_omega phi_theta for each mesh
-#   and alpha beta for number of modes and each time step
-# (run pod.py)
-
-# run lstm on alpha beta, get model
-# (run lstm.py)
-
-# Inputs (move to yml)
-n_each = 1
-ws = 5
-lx = 8; ly = 1
-nx = 256; ny = int(nx/8)
-Re = 1e4; Ri = 4; Pr = 1
-Tm = 8; dt = 5e-4; nt = int(np.round(Tm/dt))
-freq = int(nt/ns)
-nr = 10
 
 abromfom = np.empty([ns+1,2*nr])
 a_window = np.empty([ws*n_each,nr])
@@ -73,7 +70,6 @@ b_window[0,:] = podproj_svd(t_spread_1d,Phit)
 
 # for the first window_size steps
 #     get alpha beta for each time step
-
 for i in range(1, ws*n_each):
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
@@ -102,24 +98,19 @@ scaler = MinMaxScaler(feature_range=(-1,1))
 scaler.fit([scalermin,scalermax])
 # scale alphabeta_window
 ab_window = scaler.transform(ab_window)
-
 abromfom[0:ws*n_each,:] = ab_window
 ab_window_each = np.copy(abromfom[0:ws*n_each:n_each,:])
 print('input.shape: ', ab_window_each.shape)
-
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
-
 for i in range(ws*n_each, ns+1):
     print('ROMFOM iteration #', i)
     time = time+dt*nt/ns; n = n+1
-
     # make sure about the BC. (doesn't make a difference in results)
     for j in range(w.shape[0]):
         w[j,0] = 0; w[j,-1]=0
     for j in range(w.shape[1]):
         w[0,j] = 0; w[-1,j]=0
-
     # update <<theta>>, use fom_energy on psi omega theta
     t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
     # get new <<alpha>>, run model on a window of alpha beta
