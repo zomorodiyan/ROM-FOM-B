@@ -23,7 +23,7 @@ ns = 800 #number of snapshots
 n_each = 1 #the move for lstm for large number of snapshots(ns)
 nr = 10 #number of pod modes
 
-nx = 256 #number of meshes in x direction
+nx = 512 #number of meshes in x direction
 ny = int(nx/8) #number of meshes in y direction
 lx = 8 #length in x direction
 ly = 1 #length in y direction
@@ -71,6 +71,7 @@ b_window[0,:] = podproj_svd(t_spread_1d,Phit)
 # for the first window_size steps
 #     get alpha beta for each time step
 for i in range(1, ws*n_each):
+    print('initFOM ',"{:.0f}".format(i/(ws*n_each-1)*100), '%   ', end='\r')
     time = time+dt*nt/ns; n = n+1
     #run fom, get psi omega theta for each time step
     for j in range (0,freq):
@@ -85,8 +86,8 @@ for i in range(1, ws*n_each):
     t_spread_1d = t_1d - t_mean
     # get new <<beta>>, project w_spread on Phit
     b_window[i,:] = podproj_svd(t_spread_1d,Phit)
-
     export_data_test(nx,ny,i,w,s,t) # for test contour
+print('')
 
 # concatenate alpha beta together
 ab_window = np.concatenate((a_window, b_window), axis=1)
@@ -100,11 +101,10 @@ scaler.fit([scalermin,scalermax])
 ab_window = scaler.transform(ab_window)
 abromfom[0:ws*n_each,:] = ab_window
 ab_window_each = np.copy(abromfom[0:ws*n_each:n_each,:])
-print('input.shape: ', ab_window_each.shape)
 # Recreate the lstm model, including its weights and the optimizer
 model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 for i in range(ws*n_each, ns+1):
-    print('ROMFOM iteration #', i)
+    print('ROMFOM ',"{:.0f}".format((i-ws*n_each)/(ns+1-ws*n_each)*100), '%   ', end='\r')
     time = time+dt*nt/ns; n = n+1
     # make sure about the BC. (doesn't make a difference in results)
     for j in range(w.shape[0]):
@@ -134,13 +134,11 @@ for i in range(ws*n_each, ns+1):
     # put ab_new at the end of ab_window and shift the rest back
     abromfom[i,:] = ab_new
     ab_window_each = np.copy(abromfom[i-ws*n_each+1:i-n_each+2:n_each,:])
-    print('i: ', i)
-    print('*input.shape: ', ab_window_each.shape)
     #export_data_test(nx,ny,i,w,s,t) # for romfom contour
+print('')
 
 #%% the FOM, and ROM, part of the diagrams
 # Load Data
-nx = 256; ny = int(nx/8)
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
@@ -159,14 +157,14 @@ model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 #xtest = np.copy(np.expand_dims(ablstm[0:ws,:], axis=0))
 xtest = np.copy(np.expand_dims(ablstm[0:ws*n_each:n_each,:], axis=0))
 for i in range(ws*n_each, ns+1):
-    print('ROM iteration #', i)
+    print('ROM ',"{:.0f}".format((i-ws*n_each)/(ns+1-ws*n_each)*100), '%   ', end='\r')
     ablstm[i,:] = model.predict(xtest)
     xtest = np.copy(np.expand_dims(ablstm[i-ws*n_each+1:i-n_each+2:n_each,:], axis=0))
 
 for n in range(0,20):
-    s1 = scaled[:,n]
-    s2 = ablstm[:,n]
-    s3 = abromfom[:,n]
+    s1 = scaled[:ns+1,n]
+    s2 = ablstm[:ns+1,n]
+    s3 = abromfom[:ns+1,n]
 
     fig, ax = plt.subplots()
     ax.plot(t, s1)
@@ -181,5 +179,3 @@ for n in range(0,20):
     if(n==0):
         plt.show()
     plt.clf()
-
-
