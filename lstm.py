@@ -13,6 +13,7 @@ from tools import window_data
 #%% Main program
 # Load Data
 nx = 256; ny = int(nx/8)
+n_each = 1
 window_size = 5
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
@@ -29,7 +30,6 @@ np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 serie = scaled_data
 n_states = serie.shape[1]
 
-n_each = 1
 xtrain = np.empty((0,window_size,serie.shape[1]), float)
 ytrain = np.empty((0,serie.shape[1]), float)
 for i in range(n_each):
@@ -55,8 +55,8 @@ model.add(Dense(n_states))
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=2000, batch_size=800,
-        validation_split=0.20, verbose=1)
+history = model.fit(xtrain, ytrain, epochs=1000, batch_size=800,
+        validation_split=0.20, verbose=0)
 
 #evaluate the model
 scores = model.evaluate(xtrain, ytrain, verbose=1)

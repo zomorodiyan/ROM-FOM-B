@@ -23,19 +23,19 @@ ns = 800 #number of snapshots
 n_each = 1 #the move for lstm for large number of snapshots(ns)
 nr = 10 #number of pod modes
 
-nx = 512 #number of meshes in x direction
+nx = 256 #number of meshes in x direction
 ny = int(nx/8) #number of meshes in y direction
 lx = 8 #length in x direction
 ly = 1 #length in y direction
 
-Re = 2e2 #Reynolds Number: inertial/viscous
+Re = 1e2 #Reynolds Number: inertial/viscous
 Ri = 4 #Richardson Number: Buoyancy/flow_shear
 Pr = 1 #Prandtl Number: momentum_diffusivity/thermal_diffusivity
 
 Tm = 8 #maximum time
 dt = 1e-3 #time_step_size
 nt = np.int(np.round(Tm/dt)) #number of time_steps
-freq = np.int(nt/ns) #every freq time_stap we export data
+freq = np.int(nt/ns) #every freq time_step we export data
 ws = 5 #window size
 
 #%% grid
