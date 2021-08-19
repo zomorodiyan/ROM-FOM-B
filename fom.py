@@ -9,14 +9,8 @@ import numpy as np
 from tools import jacobian, laplacian, initial, RK3, tbc, \
                   poisson_fst, BoussRHS, velocity, export_data,\
                   export_data_test
-
-#%% Main program
-# Inputs
-lx = 8; ly = 1
-nx = 256; ny = int(nx/8)
-Re = 2e2; Ri = 4; Pr = 1
-Tm = 8; dt = 1e-3; nt = int(np.round(Tm/dt))
-ns = 800; freq = int(nt/ns)
+# Load inputs
+from inputs import lx, ly, nx, ny, Re, Ri, Pr, dt, nt, ns, freq
 
 #%% grid
 dx = lx/nx; dy = ly/ny
@@ -42,3 +36,4 @@ for n in range(1,nt+1):
     if n%freq==0:
         export_data(nx,ny,n,w,s,t)
         print('FOM ',"{:.0f}".format((n)/(nt)*100), '%   ', end='\r')
+print('')

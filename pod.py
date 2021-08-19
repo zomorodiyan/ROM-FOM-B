@@ -7,11 +7,8 @@ import os
 from tools import jacobian, laplacian, poisson_fst, \
                   import_data, pod_svd, podproj_svd
 
-# Inputs
-lx = 8; ly = 1
-nx = 256; ny = int(nx/8)
-Tm = 8; dt = 1e-3; nt = int(np.round(Tm/dt))
-ns = 800; freq = int(nt/ns)
+# Load inputs
+from inputs import lx, ly, nx, ny, nt, ns, freq
 
 #%% grid
 dx = lx/nx; dy = ly/ny
@@ -36,9 +33,11 @@ sm = tmp.reshape([-1,])
 # compute phi_psi_k, k in range(nr), using the equation 29
 Phis = np.zeros([(nx+1)*(ny+1),nr])
 for k in range(nr):
+    print('loop 1/2 ',"{:.0f}".format(k/(nr-1)*100), '%   ', end='\r')
     tmp = np.copy(Phiw[:,k]).reshape([nx+1,ny+1])
     tmp = poisson_fst(nx,ny,dx,dy,tmp)
     Phis[:,k] = tmp.reshape([-1,])
+print('')
 
 #%% compute true modal coefficients
 nstart= 0
@@ -55,14 +54,11 @@ for i in range(nstart,nend+1,nstep):
     w,s,t = import_data(nx,ny,i)
     tmp = w.reshape([-1,])-wm
     aTrue[ii,:] = podproj_svd(tmp,Phiw)
-
     tmp = t.reshape([-1,])-tm
     bTrue[ii,:] = podproj_svd(tmp,Phit)
-
     ii = ii + 1
-
-    if ii%10 == 0:
-        print('ROM ',"{:.0f}".format((ii-nstart+1)/(nend+1-nstart)*100), '%   ', end='\r')
+    print('loop 2/2 ',"{:.0f}".format((i-nstart+1)/(nend+1-nstart)*100), '%   ', end='\r')
+print('')
 
 
 #%% Save data

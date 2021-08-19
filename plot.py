@@ -4,14 +4,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 
-nt = int(np.round(8/5e-4))
-nx = 256; ny = int(nx/8)
-lx = 8
-ly = 1
+# Load inputs
+from inputs import lx, ly, nx, ny, nt
 x = np.linspace(0.0,lx,nx+1)
 y = np.linspace(0.0,ly,ny+1)
 X, Y = np.meshgrid(x, y, indexing='ij')
-
 
 #%% Load FOM results for t=0,2,4,8
 n=0 #t=0

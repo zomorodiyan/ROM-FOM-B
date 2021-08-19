@@ -19,24 +19,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 # then run this
 
-ns = 800 #number of snapshots
-n_each = 1 #the move for lstm for large number of snapshots(ns)
-nr = 10 #number of pod modes
-
-nx = 256 #number of meshes in x direction
-ny = int(nx/8) #number of meshes in y direction
-lx = 8 #length in x direction
-ly = 1 #length in y direction
-
-Re = 1e2 #Reynolds Number: inertial/viscous
-Ri = 4 #Richardson Number: Buoyancy/flow_shear
-Pr = 1 #Prandtl Number: momentum_diffusivity/thermal_diffusivity
-
-Tm = 8 #maximum time
-dt = 1e-3 #time_step_size
-nt = np.int(np.round(Tm/dt)) #number of time_steps
-freq = np.int(nt/ns) #every freq time_step we export data
-ws = 5 #window size
+# Load inputs
+from inputs import lx, ly, nx, ny, Re, Ri, Pr, dt, nt, ns, freq, nr, n_each, ws
 
 #%% grid
 dx = lx/nx
@@ -112,7 +96,7 @@ for i in range(ws*n_each, ns+1):
     for j in range(w.shape[1]):
         w[0,j] = 0; w[-1,j]=0
     # update <<theta>>, use fom_energy on psi omega theta
-    t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*nt/ns)
+    t = RK3t(BoussRHS_t,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt*freq)
     # get new <<alpha>>, run model on a window of alpha beta
     ab_lstm = model.predict(np.expand_dims(ab_window_each, axis=0))
     a_new = ab_lstm[:,0:nr]
