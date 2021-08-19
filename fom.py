@@ -2,14 +2,10 @@
 written by Shady, https://github.com/Shady-Ahmed
 edited by Mehrdad, https://github.com/zomorodiyan
 """
-#%% Import libraries
+#%% Import libraries, functions, inputs
 import numpy as np
-
-#%% Define functions
 from tools import jacobian, laplacian, initial, RK3, tbc, \
-                  poisson_fst, BoussRHS, velocity, export_data,\
-                  export_data_test
-# Load inputs
+     poisson_fst, BoussRHS, velocity, export_data, export_data_test
 from inputs import lx, ly, nx, ny, Re, Ri, Pr, dt, nt, ns, freq
 
 #%% grid
