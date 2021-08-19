@@ -13,7 +13,7 @@ from tools import jacobian, laplacian, initial, RK3, tbc, \
 #%% Main program
 # Inputs
 lx = 8; ly = 1
-nx = 256; ny = int(nx/8)
+nx = 1024; ny = int(nx/8)
 Re = 2e2; Ri = 4; Pr = 1
 Tm = 8; dt = 1e-3; nt = int(np.round(Tm/dt))
 ns = 800; freq = int(nt/ns)
@@ -30,8 +30,6 @@ export_data(nx,ny,n,w,s,t)
 
 #%% time integration
 for n in range(1,nt+1):
-    if(n==5000):
-        export_data_test(nx,ny,0,w,s,t)
     time = time+dt
     w,s,t = RK3(BoussRHS,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt)
     u,v = velocity(nx,ny,dx,dy,s)
@@ -41,9 +39,6 @@ for n in range(1,nt+1):
         print('CFL exceeds maximum value')
         break
 
-    if n%500==0:
-        print(n, " time: ","%.2f" % time, " max(w): ","%.3f" % np.max(w), " cfl: ","%.4f" % cfl)
-
     if n%freq==0:
         export_data(nx,ny,n,w,s,t)
-        print(n)
+        print('FOM ',"{:.0f}".format((n)/(nt)*100), '%   ', end='\r')

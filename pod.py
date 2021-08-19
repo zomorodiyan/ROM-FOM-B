@@ -63,7 +63,7 @@ for i in range(nstart,nend+1,nstep):
     ii = ii + 1
 
     if ii%10 == 0:
-        print(ii)
+        print('ROM ',"{:.0f}".format((ii-nstart+1)/(nend+1-nstart)*100), '%   ', end='\r')
 
 
 #%% Save data
