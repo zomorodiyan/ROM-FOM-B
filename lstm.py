@@ -10,7 +10,6 @@ from tensorflow.keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
 from tools import window_data
 
-#%% Main program
 # Load inputs
 from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws
 

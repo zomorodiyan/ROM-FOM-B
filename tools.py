@@ -148,6 +148,20 @@ def export_data(nx,ny,n,w,s,t):
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
     np.savez(filename,w=w,s=s,t=t)
 
+def export_data2(nx,ny,n,w,s,t,name):
+    folder = name+'_'+ str(nx) + 'x' + str(ny)
+    if not os.path.exists('./results/'+folder):
+        os.makedirs('./results/'+folder)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
+    np.savez(filename,w=w,s=s,t=t)
+
+def export_data3(nx,ny,var,name):
+    folder = name+'_'+ str(nx) + 'x' + str(ny)
+    if not os.path.exists('./results/'+folder):
+        os.makedirs('./results/'+folder)
+    filename = './results/'+folder+'.npz'
+    np.savez(filename,var=var)
+
 def export_data_test(nx,ny,n,w,s,t):
     folder = 'test_'+ str(nx) + 'x' + str(ny)
     if not os.path.exists('./results/'+folder):
@@ -164,6 +178,15 @@ def import_data(nx,ny,n):
     t = data['t']
     return w,s,t
 
+def import_data2(nx,ny,n,name):
+    folder = name+'_'+ str(nx) + 'x' + str(ny)
+    filename = './results/'+folder+'/' + str(int(n))+'.npz'
+    data = np.load(filename)
+    w = data['w']
+    s = data['s']
+    t = data['t']
+    return w,s,t
+
 def import_data_test(nx,ny,n):
     folder = 'test_'+ str(nx) + 'x' + str(ny)
     filename = './results/'+folder+'/' + str(int(n))+'.npz'
@@ -173,6 +196,12 @@ def import_data_test(nx,ny,n):
     t = data['t']
     return w,s,t
 
+def import_data3(nx,ny,name):
+    folder = name+'_'+ str(nx) + 'x' + str(ny)
+    filename = './results/'+folder+'.npz'
+    data = np.load(filename)
+    var = data['var']
+    return var
 def pod_svd(nx,ny,dx,dy,nstart,nend,nstep,nr):
     ns = int((nend-nstart)/nstep)
     #compute temporal correlation matrix
