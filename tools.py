@@ -288,3 +288,8 @@ def BoussRHS_t(nx,ny,dx,dy,Re,Pr,Ri,w,s,t):
     Jt = jacobian(nx,ny,dx,dy,t,s) #Jacobian terms
     rt = -Jt + (1/(Re*Pr))*Lt # t-equation
     return rt
+
+def show_percent(name,i,a,b):
+    print(name,"{:.0f}".format((i-a+1)/(b-a)*100), '%   ', end='\r')
+    if(i==b-1):
+        print('')

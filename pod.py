@@ -8,7 +8,7 @@ from tools import jacobian, laplacian, poisson_fst, \
                   import_data, pod_svd, podproj_svd
 
 # Load inputs
-from inputs import lx, ly, nx, ny, nt, ns, freq
+from inputs import lx, ly, nx, ny, nt, ns, freq, nr
 
 #%% grid
 dx = lx/nx; dy = ly/ny
@@ -17,7 +17,6 @@ X, Y = np.meshgrid(x, y, indexing='ij')
 
 #%% pod basis generation
 nstart= 0; nend = nt; nstep = freq
-nr = 10 #number of basis to store [we might not need to *use* all of them]
 #compute  mean field and basis functions for potential voriticity
 wm,Phiw,Lw,RICw , tm,Phit,Lt,RICt  = pod_svd(nx,ny,dx,dy,nstart,nend,nstep,nr)
 

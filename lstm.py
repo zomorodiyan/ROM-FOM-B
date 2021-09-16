@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tools import window_data
 
 # Load inputs
-from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws
+from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws, epochs
 
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
@@ -19,6 +19,12 @@ aTrue = data['aTrue']; bTrue = data['bTrue']
 
 # Scale Data
 data = np.concatenate((aTrue, bTrue), axis=1) # axes 0:snapshots 1:states
+percent = 100
+data = data[:int(data.shape[0]*percent/100),:]
+print('training data ',percent,'%')
+print('test data ',100-percent,'%')
+
+
 scaler = MinMaxScaler(feature_range=(-1,1))
 scaled_data = scaler.fit_transform(data)
 filename = './results/scaler_' + str(nx) + 'x' + str(ny) + '.npz'
@@ -53,7 +59,7 @@ model.add(Dense(n_states))
 model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
 
 #run the model
-history = model.fit(xtrain, ytrain, epochs=1000, batch_size=800,
+history = model.fit(xtrain, ytrain, epochs=epochs, batch_size=800,
         validation_split=0.20, verbose=0)
 
 #evaluate the model

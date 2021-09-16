@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import os
 
 # Load inputs
-from inputs import lx, ly, nx, ny, nt, ns, nr, Re
+from inputs import lx, ly, nx, ny, nt, ns, nr, Re, nplot
 x = np.linspace(0.0,lx,nx+1)
 y = np.linspace(0.0,ly,ny+1)
 X, Y = np.meshgrid(x, y, indexing='ij')
 
 #%% Load FOM results for t=0,2,4,8
-n=0 #t=0
+#n=0 #t=0
+n=int(0.1*nt/8) #t=0.1
 w0,s0,t0 = import_data(nx,ny,n)
 n=int(2*nt/8) #t=2
 w2,s2,t2 = import_data(nx,ny,n)
@@ -21,7 +22,8 @@ n=int(8*nt/8) #t=8
 w8,s8,t8 = import_data(nx,ny,n)
 
 #%% Load ROMFOM results for t=0,2,4,8
-n=0 #t=0
+#n=0 #t=0
+n=int(0.1*ns/8) #t=0.1
 w0rf,s0rf,t0rf = import_data2(nx,ny,n,'romfom')
 n=int(2*ns/8) #t=2
 w2rf,s2rf,t2rf = import_data2(nx,ny,n,'romfom')
@@ -38,7 +40,7 @@ font = {'family' : 'normal',
         'size'   : 14}
 mpl.rc('font', **font) # qqq
 
-nlvls = 16
+nlvls = 30
 x_ticks = [0,1,2,3,4,5,6,7,8]
 y_ticks = [0,1]
 
@@ -54,17 +56,38 @@ if not os.path.exists('./results/nx_'+str(nx)+'_Re_'+str(int(Re))):
 for i in range(3):
     if(i==0):#omega
         name = 'omega'
-        min = -7.50; max = 0.0
+        if(Re < 200):
+            min = -7.50; max = 0.0
+        elif(Re < 800):
+            min = -15; max = 2.0
+        elif(Re < 2000):
+            min = -15; max = 2.0
+        elif(Re >= 2000):
+            min = -15; max = 2.0
         tmp0 = w0; tmp2 = w2; tmp4 = w4; tmp8 = w8
         tmp0rf = w0rf; tmp2rf = w2rf; tmp4rf = w4rf; tmp8rf = w8rf
     if(i==1):#psi
         name = 'psi'
-        min = -0.35; max = 0.0
+        if(Re < 200):
+            min = -0.35; max = 0.0
+        elif(Re < 800):
+            min = -0.5; max = 0.0
+        elif(Re < 2000):
+            min = -0.5; max = 0.0
+        elif(Re >= 2000):
+            min = -0.5; max = 0.0
         tmp0 = s0; tmp2 = s2; tmp4 = s4; tmp8 = s8
         tmp0rf = s0rf; tmp2rf = s2rf; tmp4rf = s4rf; tmp8rf = s8rf
-    if(i==0):#theta
+    if(i==2):#theta
         name = 'theta'
-        min = 1.05; max = 1.45
+        if(Re < 200):
+            min = 1.05; max = 1.45
+        elif(Re < 800):
+            min = 1.05; max = 1.6
+        elif(Re < 2000):
+            min = 1.05; max = 1.6
+        elif(Re >= 2000):
+            min = 1.05; max = 1.6
         tmp0 = t0; tmp2 = t2; tmp4 = t4; tmp8 = t8
         tmp0rf = t0rf; tmp2rf = t2rf; tmp4rf = t4rf; tmp8rf = t8rf
 
@@ -72,6 +95,7 @@ for i in range(3):
     ctick = np.linspace(min, max, 6, endpoint=True)
 
     fig, axs = plt.subplots(4,2,figsize=(20,10))
+    plt.suptitle(name+' contour evolution Re='+str(int(Re)), fontsize=25)
     axs= axs.flat
 
     cs = axs[0].contour(X,Y,tmp0,v,cmap=colormap,linewidths=3)
@@ -104,7 +128,7 @@ for i in range(3):
         axs[i].set_ylabel('$y$')
 
 # Add titles
-    fig.text(0.92, 0.83, '$t=0$', va='center')
+    fig.text(0.92, 0.83, '$t=0.1$', va='center')
     fig.text(0.92, 0.63, '$t=2$', va='center')
     fig.text(0.92, 0.43, '$t=4$', va='center')
     fig.text(0.92, 0.23, '$t=8$', va='center')
@@ -116,21 +140,25 @@ for i in range(3):
 
     plt.savefig('./results/nx_'+str(nx)+'_Re_'+str(int(Re))+'/'+name+'.png', dpi = 500, bbox_inches = 'tight')
 
-s1 = import_data3(nx,ny,'rom')
-s2 = import_data3(nx,ny,'fom')
-s3 = import_data3(nx,ny,'romfom')
-t = np.arange(0, ns+1, 1)
 
-print('s1.shape', s1.shape)
+#-----------------------------evolution----------------------------------------
+
+s1 = import_data3(nx,ny,'fom')
+s2 = import_data3(nx,ny,'rom')
+s3 = import_data3(nx,ny,'romfom')
+t = np.arange(0, nplot, 1)
 
 n=0
-name = 'alpha'
-for j in range(2):
+name = 'alpha0'
+for j in range(2*int(nr/10)):
     fig, axs = plt.subplots(5,2,figsize=(20,10))
+    plt.suptitle(name+' evolution Re='+str(int(Re)), fontsize=25)
     for ax in axs.flat:
-        ax.plot(t, s1[:ns+1,n])
-        ax.plot(t, s2[:ns+1,n])
-        ax.plot(t, s3[:ns+1,n])
+        ax.plot(t, s1[:nplot,n],linewidth=3, color='cyan')
+        #ax.plot(t, s2[:nplot,n],linestyle='dashed',linewidth=3, color='black')
+        ax.plot(t, s2[:nplot,n],linewidth=1, color='black')
+        ax.plot(t, s3[:nplot,n],linewidth=2, color='red')
+        ax.set_ylabel(name+' '+str(n), fontsize='large')   # relative to plt.rcParams['font.size']
         n=n+1
         if(n==1 or n==nr+1):
             ax.legend(["fom", "rom","romfom"], loc='upper left')
@@ -141,7 +169,10 @@ for j in range(2):
         if(n==2*nr-1 or n==2*nr):
             ax.set(xlabel='timeStep')
     fig.savefig('./results/nx_'+str(nx)+'_Re_'+str(int(Re))+'/'+name+'.png')
-    name = 'beta'
+    if(j<int(nr/10)):
+        name = 'alpha'+str(j+1)
+    else:
+        name = 'beta'+str(j-int(nr/10))
     fig.clear(True)
 '''
 if(n==0):
