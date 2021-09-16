@@ -34,6 +34,9 @@ scalermin = data2['scalermin']; scalermax = data2['scalermax']
 scaler = MinMaxScaler(feature_range=(-1,1))
 scaler.fit([scalermin,scalermax])
 
+# Recreate the lstm model, including its weights and the optimizer
+model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
+
 # --------------------------------ROM-FOM--------------------------------------
 # init
 w,s,t = initial(nx,ny)
@@ -52,9 +55,6 @@ for i in range(length):
 
 # scale alphabetaz
 abromfom[0:length,:] = scaler.transform(np.concatenate((az, bz), axis=1))
-
-# Recreate the lstm model, including its weights and the optimizer
-model = load_model('./results/lstm_'+str(nx)+'x'+str(ny)+'.h5')
 
 # for the rest of steps get a, b
 for i in range(length, ns+1):
