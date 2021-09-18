@@ -3,7 +3,7 @@ import os
 from scipy.fftpack import dst, idst
 from numpy import linalg as LA
 from sklearn.preprocessing import MinMaxScaler
-from inputs import ws, n_each, winName #for window_length & make_window
+from inputs import ws, eqspace, winName #for window_length & make_window
 
 def jacobian(nx,ny,dx,dy,q,s):
     # compute jacobian using arakawa scheme
@@ -247,19 +247,6 @@ def podrec_svd(a,Phi): #Reconstruction
     u = np.dot(Phi,a.T)
     return u
 
-def window_data(serie, window_size):
-    n_snapshots = serie.shape[0]
-    n_states = serie.shape[1]
-    ytrain = serie[window_size:,:]
-    xtrain = np.zeros((n_snapshots-window_size, window_size, n_states))
-    for i in range(n_snapshots-window_size):
-        tmp = serie[i,:]
-        for j in range(1,window_size):
-            tmp = np.vstack((tmp,serie[i+j,:]))
-        xtrain[i,:,:] = tmp
-    return xtrain , ytrain
-
-
 def RK3t(rhs,nx,ny,dx,dy,Re,Pr,Ri,w,s,t,dt):
 # time integration using third-order Runge Kutta method
     aa = 1.0/3.0
@@ -309,7 +296,7 @@ def winLen():
     if winName == 'regular':
         return ws
     elif winName == 'eqspace':
-        return ws*n_each
+        return ws*eqspace
     elif winName == 'addspace':
         length=0
         for i in range(ws): length += i+1
@@ -321,19 +308,16 @@ def make_win(i,data):
     window = np.empty([ws,data.shape[1]])
     if winName == 'regular':
         window[:,:] = data[i-ws:i,:]
-    elif winName == 'eqspace':
-        A = data[i-ws*n_each:i-n_each+1:n_each,:]
-        print('window.shape',window.shape)
-        print('data.shape',A.shape)
-        print('...',i)
+    elif winName == 'eqspace': # e.g. ws=3,eqspace=2 : x0x0x0y
+        A = data[i-ws*eqspace:i-eqspace+1:eqspace,:]
         window[:,:] = A
-    elif winName == 'addspace':
+    elif winName == 'addspace': # e.g. ws=3 : x00x0xy, ws=4 x000x00x0xy
         length=0
-        for i in range(ws): length += i+1
-        s = length
+        for k in range(ws): length += k+1
+        s = 0
         for j in range(1,ws+1):
-            s -= j
-            window[-j,:] = ablstm[s+i-length,:]
+            s += j
+            window[-j,:] = data[i-s,:]
     else:
         raise ValueError("only name options:'regular','eqspace','addspace'")
     return window

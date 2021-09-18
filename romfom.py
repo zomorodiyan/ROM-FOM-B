@@ -7,11 +7,11 @@ from tools import initial, podproj_svd, RK3, BoussRHS, podrec_svd, RK3t,\
      reconstruct_scaler, make_win
 
 # Load inputs
-from inputs import lx, ly, nx, ny, Re, Ri, Pr, dt, nt, ns, freq, nr, n_each, ws
+from inputs import lx, ly, nx, ny, Re, Ri, Pr, dt, nt, ns, freq, nr, eqspace, ws
 
 #%%---------------------------define variables---------------------------------
 abromfom = np.empty([ns+1,2*nr])
-length = ws*n_each
+length = ws*eqspace
 az = np.empty([length,nr])
 bz = np.empty([length,nr])
 ablstm = np.empty([ns+1,2*nr])

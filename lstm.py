@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tools import winLen, make_win
 
 # Load inputs
-from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws, epochs,\
+from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, eqspace, ws, epochs,\
         nr
 
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
