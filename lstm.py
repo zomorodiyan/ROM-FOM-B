@@ -8,39 +8,42 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, LSTM
 from sklearn.preprocessing import MinMaxScaler
-from tools import window_data
+from tools import winLen, make_win
 
 # Load inputs
-from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws, epochs
+from inputs import nx, ny, Re, Ri, Pr, dt, nt, ns, freq, n_each, ws, epochs,\
+        nr
 
 filename = './results/pod_'+ str(nx) + 'x' + str(ny) + '.npz'
 data = np.load(filename)
 aTrue = data['aTrue']; bTrue = data['bTrue']
 
-# Scale Data
 data = np.concatenate((aTrue, bTrue), axis=1) # axes 0:snapshots 1:states
 percent = 100
 data = data[:int(data.shape[0]*percent/100),:]
-print('training data ',percent,'%')
-print('test data ',100-percent,'%')
 
-
+# Scale Data
 scaler = MinMaxScaler(feature_range=(-1,1))
 scaled_data = scaler.fit_transform(data)
 filename = './results/scaler_' + str(nx) + 'x' + str(ny) + '.npz'
 np.savez(filename, scalermin = scaler.data_min_, scalermax = scaler.data_max_)
 
-# Training Data X & Y
-serie = scaled_data
+#==============================================================================
+scaled_aTrue = scaled_data[:,:nr] #m2
+scaled_bTrue = scaled_data[:,nr:] #m2
+serie = np.concatenate((scaled_aTrue,scaled_bTrue),axis=1) #m2
+#==============================================================================
+
+serie_len = serie.shape[0]
 n_states = serie.shape[1]
 
-xtrain = np.empty((0,ws,serie.shape[1]), float)
-ytrain = np.empty((0,serie.shape[1]), float)
-for i in range(n_each):
-    serie_each = serie[i::n_each,:]
-    xtrain_each, ytrain_each = window_data(serie=serie_each,window_size=ws)
-    xtrain = np.vstack((xtrain, xtrain_each))
-    ytrain = np.vstack((ytrain, ytrain_each))
+xtrain = np.empty((0,ws,n_states), float)
+ytrain = np.empty((0,n_states), float)
+for i in range(winLen(),serie_len):
+    winx = np.expand_dims(make_win(i,serie),axis=0)
+    winy = np.expand_dims(serie[i,:],axis=0)
+    xtrain = np.vstack((xtrain, winx))
+    ytrain = np.vstack((ytrain, winy))
 
 #Shuffling data
 seed(1) # this line & next, what will they affect qqq

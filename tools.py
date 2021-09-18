@@ -2,6 +2,8 @@ import numpy as np
 import os
 from scipy.fftpack import dst, idst
 from numpy import linalg as LA
+from sklearn.preprocessing import MinMaxScaler
+from inputs import ws, n_each, winName #for window_length & make_window
 
 def jacobian(nx,ny,dx,dy,q,s):
     # compute jacobian using arakawa scheme
@@ -293,3 +295,45 @@ def show_percent(name,i,a,b):
     print(name,"{:.0f}".format((i-a+1)/(b-a)*100), '%   ', end='\r')
     if(i==b-1):
         print('')
+
+def reconstruct_scaler(nx,ny):
+# reconstruct the same scaler as the training time using the saved min and max
+    filename = './results/scaler_'+ str(nx) + 'x' + str(ny) + '.npz'
+    data2 = np.load(filename)
+    scalermin = data2['scalermin']; scalermax = data2['scalermax']
+    scaler = MinMaxScaler(feature_range=(-1,1))
+    scaler.fit([scalermin,scalermax])
+    return scaler
+
+def winLen():
+    if winName == 'regular':
+        return ws
+    elif winName == 'eqspace':
+        return ws*n_each
+    elif winName == 'addspace':
+        length=0
+        for i in range(ws): length += i+1
+        return length
+    else:
+        raise ValueError("only name options:'regular','eqspace','addspace'")
+
+def make_win(i,data):
+    window = np.empty([ws,data.shape[1]])
+    if winName == 'regular':
+        window[:,:] = data[i-ws:i,:]
+    elif winName == 'eqspace':
+        A = data[i-ws*n_each:i-n_each+1:n_each,:]
+        print('window.shape',window.shape)
+        print('data.shape',A.shape)
+        print('...',i)
+        window[:,:] = A
+    elif winName == 'addspace':
+        length=0
+        for i in range(ws): length += i+1
+        s = length
+        for j in range(1,ws+1):
+            s -= j
+            window[-j,:] = ablstm[s+i-length,:]
+    else:
+        raise ValueError("only name options:'regular','eqspace','addspace'")
+    return window

@@ -19,6 +19,7 @@ dt = 1e-3 #time_step_size
 nt = np.int(np.round(Tm/dt)) #number of time_steps
 freq = np.int(nt/ns) #every freq time_step we export data
 ws = 5 #window size
+winName = 'eqspace' # options are 'regular', 'eqspace', 'addspace'
 
 epochs = 3000
 
